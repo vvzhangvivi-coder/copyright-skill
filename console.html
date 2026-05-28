@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>著作权登记自动填表控制台</title>
+<style>
+:root {
+  --zinc-950: #09090b;
+  --zinc-900: #18181b;
+  --zinc-800: #27272a;
+  --zinc-400: #a1a1aa;
+  --zinc-100: #f4f4f5;
+  --accent: #4f46e5;
+  --accent-hover: #4338ca;
+  --danger: #ef4444;
+  --danger-hover: #dc2626;
+  --success: #10b981;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: var(--font-sans);
+  background: var(--zinc-950);
+  color: var(--zinc-100);
+  min-height: 100dvh;
+  display: flex;
+  justify-content: center;
+  padding: 40px 20px;
+  line-height: 1.5;
+}
+.app-wrapper {
+  width: 100%;
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.header { margin-bottom: 8px; }
+.title { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; color: var(--zinc-100); }
+.subtitle { font-size: 14px; color: var(--zinc-400); margin-top: 4px; }
+.card {
+  background: var(--zinc-900);
+  border: 1px solid var(--zinc-800);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  transition: opacity 0.3s ease;
+}
+.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.card-title { font-size: 16px; font-weight: 600; }
+.badge { background: var(--zinc-800); color: var(--zinc-400); padding: 4px 8px; border-radius: var(--radius-md); font-size: 12px; }
+.text-muted { color: var(--zinc-400); }
+.text-main { color: var(--zinc-100); }
+.text-sm { font-size: 13px; }
+.mt-1 { margin-top: 4px; } .mt-3 { margin-top: 12px; } .mt-4 { margin-top: 16px; }
+.w-full { width: 100%; }
+
+/* Loading & Error */
+.loading-state, .error-state {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 40px 0; gap: 12px; color: var(--zinc-400); font-size: 14px;
+}
+.spinner {
+  width: 20px; height: 20px; border: 2px solid var(--zinc-800);
+  border-top-color: var(--accent); border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Table */
+.table-container {
+  border: 1px solid var(--zinc-800); border-radius: var(--radius-md);
+  overflow: hidden; margin-bottom: 16px;
+}
+.records-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+.records-table th, .records-table td { padding: 12px 16px; border-bottom: 1px solid var(--zinc-800); }
+.records-table th { background: rgba(39, 39, 42, 0.5); font-weight: 500; color: var(--zinc-400); }
+.records-table tr:last-child td { border-bottom: none; }
+.tag {
+  background: rgba(79, 70, 229, 0.1); color: #818cf8;
+  padding: 2px 6px; border-radius: 4px; font-size: 12px; border: 1px solid rgba(79, 70, 229, 0.2);
+}
+.records-footer { display: flex; justify-content: space-between; align-items: center; }
+
+/* Form */
+.form-group label { display: block; font-size: 13px; color: var(--zinc-400); margin-bottom: 8px; }
+.form-group input {
+  width: 100%; padding: 10px 12px; background: var(--zinc-950);
+  border: 1px solid var(--zinc-800); border-radius: var(--radius-md);
+  color: var(--zinc-100); font-size: 14px; transition: border-color 0.2s; outline: none;
+}
+.form-group input:focus { border-color: var(--accent); }
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 10px 16px; border: none; border-radius: var(--radius-md);
+  font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; outline: none;
+}
+.btn:focus-visible { box-shadow: 0 0 0 2px var(--zinc-950), 0 0 0 4px var(--accent); }
+.btn-primary { background: var(--accent); color: white; min-height: 44px; }
+.btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+.btn-primary:disabled { background: var(--zinc-800); color: var(--zinc-400); cursor: not-allowed; }
+.btn-danger { background: var(--danger); color: white; }
+.btn-danger:hover { background: var(--danger-hover); }
+.btn-outline { background: transparent; border: 1px solid var(--zinc-800); color: var(--zinc-100); }
+.btn-outline:hover { background: var(--zinc-800); }
+.btn-sm { padding: 6px 12px; font-size: 12px; min-height: 32px; }
+
+/* Progress */
+.alert-warning {
+  display: flex; gap: 12px; padding: 16px; border-radius: var(--radius-md);
+  background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+}
+.alert-icon { flex-shrink: 0; display: flex; align-items: flex-start; }
+.alert-title { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+.alert-desc { font-size: 13px; color: #fcd34d; line-height: 1.5; }
+
+.progress-header { display: flex; justify-content: space-between; align-items: flex-start; }
+.progress-track { width: 100%; height: 6px; background: var(--zinc-800); border-radius: 3px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.3s ease; }
+.current-action { font-size: 14px; font-weight: 500; min-height: 20px; display: flex; align-items: center; gap: 8px; }
+.current-action .spinner { width: 14px; height: 14px; border-width: 2px; }
+
+/* Logs */
+.log-panel {
+  background: var(--zinc-950); border: 1px solid var(--zinc-800); border-radius: var(--radius-md);
+  padding: 12px; height: 180px; overflow-y: auto; font-family: var(--font-mono); font-size: 12px; line-height: 1.6;
+}
+.log-entry { color: var(--zinc-400); }
+.log-entry.success { color: var(--success); }
+.log-entry.error { color: var(--danger); }
+.log-entry.warning { color: #f59e0b; }
+.log-entry.info { color: #60a5fa; }
+.result-box {
+  padding: 16px; border-radius: var(--radius-md); font-size: 14px; text-align: center;
+}
+.result-box.success { background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); color: var(--success); }
+.result-box.warning { background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.2); color: #f59e0b; }
+.failed-list { margin-top: 12px; text-align: left; color: var(--zinc-100); }
+.failed-list-title { font-weight: 600; margin-bottom: 6px; }
+.failed-list ol { padding-left: 20px; }
+.failed-list li { margin-bottom: 6px; }
+.failed-list .failed-name { color: #fcd34d; }
+.failed-list .failed-error { color: var(--zinc-400); font-size: 12px; margin-top: 2px; }
+</style>
+</head>
+<body>
+<div class="app-wrapper">
+  <header class="header">
+    <h1 class="title">著作权登记自动填表</h1>
+    <p class="subtitle">本地同步模式 · 实时进度视图</p>
+  </header>
+
+  <main>
+    <!-- Data Section -->
+    <section id="records-section" class="card">
+      <div class="card-header">
+        <h2 class="card-title">待处理数据</h2>
+        <span id="records-badge" class="badge" style="display:none;">0 条</span>
+      </div>
+
+      <div id="records-loading" class="loading-state">
+        <div class="spinner"></div>
+        <p>正在连接并拉取多维表格数据...</p>
+      </div>
+
+      <div id="records-error" class="error-state" style="display:none;">
+        <p id="records-error-msg">拉取数据失败</p>
+        <button class="btn btn-outline btn-sm mt-3" onclick="fetchRecords()">重试</button>
+      </div>
+
+      <div id="records-content" style="display:none;">
+        <div class="table-container">
+          <table class="records-table">
+            <thead>
+              <tr>
+                <th width="12%">序号</th>
+                <th width="42%">作品名称</th>
+                <th width="23%">类型</th>
+                <th width="23%">类别</th>
+              </tr>
+            </thead>
+            <tbody id="records-tbody"></tbody>
+          </table>
+        </div>
+        <div class="records-footer">
+          <span class="text-muted text-sm">共发现 <strong id="records-total" class="text-main">0</strong> 条待处理记录</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Action Section -->
+    <section id="action-section" class="card mt-4" style="display:none;">
+      <div class="card-header" style="margin-bottom: 16px;">
+        <h2 class="card-title">执行操作</h2>
+        <p class="text-muted text-sm">将在独立浏览器窗口中自动执行填表任务</p>
+      </div>
+      <button type="button" class="btn btn-primary w-full" id="start-btn" onclick="startFill()">开始执行自动填表</button>
+
+      <!-- Waiting Login Alert -->
+      <div id="waiting-login-alert" class="alert-warning mt-4" style="display:none;">
+        <div class="alert-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <div>
+          <h3 class="alert-title">需要手动登录</h3>
+          <p class="alert-desc">请在弹出的浏览器窗口中手动登录，登录成功后将自动继续。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Progress Section -->
+    <section id="progress-section" class="card mt-4" style="display:none;">
+      <div class="progress-header">
+        <div>
+          <h2 class="card-title">执行进度</h2>
+          <p id="status-text" class="text-muted text-sm mt-1">准备中...</p>
+        </div>
+        <button id="stop-btn" class="btn btn-danger btn-sm" onclick="stopFill()" style="display:none;">停止</button>
+      </div>
+
+      <div class="progress-track mt-4">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+
+      <div class="current-action mt-3" id="current-action"></div>
+
+      <div class="log-panel mt-3" id="log-container"></div>
+
+      <div id="result-box" class="mt-4" style="display:none;"></div>
+    </section>
+  </main>
+</div>
+<script>
+let eventSource = null;
+let active = false;
+
+window.onload = fetchRecords;
+
+async function fetchRecords() {
+  const loading = document.getElementById('records-loading');
+  const errorEl = document.getElementById('records-error');
+  const contentEl = document.getElementById('records-content');
+  const badge = document.getElementById('records-badge');
+  const actionSec = document.getElementById('action-section');
+
+  loading.style.display = 'flex';
+  errorEl.style.display = 'none';
+  contentEl.style.display = 'none';
+  badge.style.display = 'none';
+  actionSec.style.display = 'none';
+
+  try {
+    const res = await fetch('/api/records');
+    const data = await res.json();
+    if(!data.ok) throw new Error(data.error || '拉取失败');
+
+    renderRecords(data.records || [], data.count || 0);
+
+    loading.style.display = 'none';
+    contentEl.style.display = 'block';
+    badge.style.display = 'inline-block';
+    badge.textContent = `${data.count} 条记录`;
+
+    actionSec.style.display = 'block';
+  } catch (err) {
+    loading.style.display = 'none';
+    errorEl.style.display = 'flex';
+    document.getElementById('records-error-msg').textContent = err.message;
+  }
+}
+
+function renderRecords(records, count) {
+  const tbody = document.getElementById('records-tbody');
+  if (records.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--zinc-400)">暂无数据</td></tr>';
+  } else {
+    tbody.innerHTML = records.map((r, i) => `
+      <tr>
+        <td class="text-muted">${i + 1}</td>
+        <td class="text-main" style="font-weight:500">${escapeHTML(r.name)}</td>
+        <td><span class="tag">${escapeHTML(r.type)}</span></td>
+        <td class="text-muted">${escapeHTML(r.category)}</td>
+      </tr>
+    `).join('');
+  }
+  document.getElementById('records-total').textContent = count;
+}
+
+function escapeHTML(str) {
+  if (!str) return '-';
+  return String(str).replace(/[&<>'"]/g, tag => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+  }[tag]));
+}
+
+function addLog(msg, type = "") {
+  const container = document.getElementById("log-container");
+  const entry = document.createElement("div");
+  entry.className = "log-entry" + (type ? " " + type : "");
+
+  const time = new Date().toLocaleTimeString([], { hour12: false });
+  entry.textContent = `[${time}] ${msg}`;
+
+  container.appendChild(entry);
+  container.scrollTop = container.scrollHeight;
+}
+
+async function startFill() {
+  const btn = document.getElementById("start-btn");
+  btn.disabled = true;
+  btn.textContent = "正在启动...";
+
+  const actionSec = document.getElementById("action-section");
+  actionSec.style.opacity = "0.8";
+
+  const alertBox = document.getElementById("waiting-login-alert");
+  alertBox.style.display = "none";
+
+  const progSec = document.getElementById("progress-section");
+  progSec.style.display = "block";
+  document.getElementById("stop-btn").style.display = "inline-flex";
+  document.getElementById("result-box").style.display = "none";
+  document.getElementById("log-container").innerHTML = "";
+
+  active = true;
+  addLog("初始化填表引擎...", "info");
+
+  try {
+    const resp = await fetch("/api/start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json();
+      throw new Error(err.error || "请求失败");
+    }
+
+    addLog("任务已启动，正在连接实时进度流...", "info");
+    connectSSE();
+  } catch (err) {
+    addLog("启动失败: " + err.message, "error");
+    btn.disabled = false;
+    btn.textContent = "开始执行自动填表";
+    actionSec.style.opacity = "1";
+    document.getElementById("stop-btn").style.display = "none";
+  }
+}
+
+function connectSSE() {
+  if (eventSource) eventSource.close();
+  eventSource = new EventSource("/api/progress");
+
+  eventSource.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      handleProgress(data);
+    } catch (e) {
+      console.error("SSE parse error:", e);
+    }
+  };
+
+  eventSource.onerror = () => {
+    if (active) {
+      addLog("实时进度流中断，正在尝试重连...", "error");
+      setTimeout(connectSSE, 2000);
+    }
+  };
+}
+
+function handleProgress(data) {
+  const actionEl = document.getElementById("current-action");
+  const statusEl = document.getElementById("status-text");
+
+  if (data.message) {
+    actionEl.innerHTML = '<div class="spinner"></div><span>' + escapeHTML(data.message) + '</span>';
+  }
+
+  if (data.totalRecords && data.recordIndex !== undefined) {
+    const pct = Math.round((data.recordIndex / data.totalRecords) * 100);
+    document.getElementById("progress-fill").style.width = pct + "%";
+    statusEl.textContent = `执行中 · 第 ${data.recordIndex + 1} / ${data.totalRecords} 条记录`;
+  }
+
+  const phase = data.phase || "";
+  const alertBox = document.getElementById("waiting-login-alert");
+  const actionSec = document.getElementById("action-section");
+  const startBtn = document.getElementById("start-btn");
+
+  if (phase === "waiting_login") {
+    alertBox.style.display = "flex";
+    addLog("等待用户手动登录", "warning");
+    actionSec.style.opacity = "1";
+    startBtn.style.display = "none";
+  } else if (phase === "login" || phase === "filling") {
+    alertBox.style.display = "none";
+    startBtn.style.display = "none";
+    addLog(data.message, "info");
+  } else if (phase === "step") {
+    addLog("  " + data.message);
+  } else if (phase === "record_done") {
+    addLog(data.message, "success");
+  } else if (phase === "error") {
+    addLog(data.message, "error");
+  } else if (phase === "restart_ready") {
+    addLog(data.message, "warning");
+    onRestartReady(data);
+  } else if (phase === "all_done") {
+    addLog(data.message, "success");
+    onComplete(data);
+  }
+}
+
+function onRestartReady(data) {
+  active = false;
+  if (eventSource) eventSource.close();
+
+  document.getElementById("stop-btn").style.display = "none";
+  document.getElementById("waiting-login-alert").style.display = "none";
+  document.getElementById("status-text").textContent = "已暂停，可重新开始";
+  document.getElementById("current-action").innerHTML = '<span>' + escapeHTML(data.message) + '</span>';
+
+  const resultBox = document.getElementById("result-box");
+  resultBox.style.display = "block";
+  resultBox.className = "result-box warning";
+  resultBox.innerHTML = `<strong>需要重新开始</strong><div class="mt-1 text-sm">${escapeHTML(data.message)}</div>`;
+
+  const btn = document.getElementById("start-btn");
+  btn.style.display = "inline-flex";
+  btn.disabled = false;
+  btn.textContent = "重新开始自动填表";
+
+  const actionSec = document.getElementById("action-section");
+  actionSec.style.opacity = "1";
+}
+
+function onComplete(data) {
+  active = false;
+  if (eventSource) eventSource.close();
+
+  document.getElementById("stop-btn").style.display = "none";
+  document.getElementById("current-action").innerHTML = '<span>' + escapeHTML(data.message) + '</span>';
+
+  const resultBox = document.getElementById("result-box");
+  resultBox.style.display = "block";
+
+  const failed = data.failed !== undefined ? data.failed : 0;
+  const failedRecords = Array.isArray(data.failedRecords) ? data.failedRecords : [];
+  const failedListHTML = failedRecords.length ? `
+    <div class="failed-list">
+      <div class="failed-list-title">失败列表</div>
+      <ol>
+        ${failedRecords.map(item => `
+          <li>
+            <div class="failed-name">第 ${Number(item.index) + 1} 条：${escapeHTML(item.workName)}</div>
+            <div class="failed-error">${escapeHTML(item.error)}</div>
+          </li>
+        `).join('')}
+      </ol>
+    </div>
+  ` : "";
+
+  if (failed === 0) {
+    resultBox.className = "result-box success";
+    resultBox.innerHTML = `<strong>任务全部完成</strong><div class="mt-1 text-sm">${escapeHTML(data.message)}</div>`;
+  } else {
+    resultBox.className = "result-box warning";
+    resultBox.innerHTML = `<strong>部分任务完成</strong><div class="mt-1 text-sm">${escapeHTML(data.message)}</div>${failedListHTML}`;
+  }
+
+  document.getElementById("progress-fill").style.width = "100%";
+  document.getElementById("status-text").textContent = "已结束";
+
+  const btn = document.getElementById("start-btn");
+  btn.style.display = "inline-flex";
+  btn.disabled = false;
+  btn.textContent = "再次执行自动填表";
+  const actionSec = document.getElementById("action-section");
+  actionSec.style.opacity = "1";
+  document.getElementById("waiting-login-alert").style.display = "none";
+}
+
+async function stopFill() {
+  active = false;
+  if (eventSource) eventSource.close();
+
+  try {
+    await fetch("/api/stop", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+  } catch (e) {}
+
+  document.getElementById("stop-btn").style.display = "none";
+  document.getElementById("current-action").innerHTML = '<span>填表已终止</span>';
+
+  addLog("操作已由用户手动终止", "error");
+  document.getElementById("status-text").textContent = "已终止";
+
+  const btn = document.getElementById("start-btn");
+  btn.style.display = "inline-flex";
+  btn.disabled = false;
+  btn.textContent = "重新开始自动填表";
+  const actionSec = document.getElementById("action-section");
+  actionSec.style.opacity = "1";
+  document.getElementById("waiting-login-alert").style.display = "none";
+}
+</script>
+</body>
+</html>

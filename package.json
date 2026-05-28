@@ -1,0 +1,15 @@
+{
+  "name": "copyright-bot",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "npx tsx server.ts",
+    "build": "echo ok"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.14.0",
+    "hono": "^4.7.10",
+    "playwright": "^1.54.0",
+    "tsx": "^4.19.0"
+  }
+}
