@@ -30,7 +30,7 @@ description: |
 
 ```bash
 # 1. clone 仓库
-git clone https://github.com/<owner>/copyright-skill.git
+git clone https://github.com/vvzhangvivi-coder/copyright-skill.git
 cd copyright-skill
 
 # 2. 安装依赖
